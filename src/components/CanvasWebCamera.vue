@@ -1,7 +1,8 @@
 <script setup>
 import parseAPNG from "apng-js";
+import axios from "axios";
 import { fabric } from "fabric";
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 
 const canvasWidth = (window.innerWidth / 3); //Canvasの横の長さ
 const canvasHeight = (window.innerHeight / 2); //Canvasの縦の長さ
@@ -18,6 +19,8 @@ var canvasStampFab;
 var canvasConcat;
 var ctxConcat;
 let cameraFacing = false;
+
+const targetUrl = ref();
 
 onMounted(() => {
   //canvasのdomとctx
@@ -123,6 +126,27 @@ const stopStreamedVideo = (video) => {
   });
   video.srcObject = null;
 };
+//pngファイルのURLを指定してcanvasに描画
+const drawFromUrl = () => {
+  axios.get(
+    targetUrl.value,
+    { responseType: 'blob', }
+  )
+    .then(res => {
+      console.log(res.data)
+      var reader = new FileReader();
+      reader.onload = () => {
+        apng = parseAPNG(reader.result);
+        if (apng instanceof Error) {
+          console.log("handle error")
+        } else {
+          apng.getPlayer(ctxPhotoframe, true);
+        }
+      }
+      reader.readAsArrayBuffer(res.data);
+    })
+
+}
 </script>
 <template>
   <div>
@@ -172,6 +196,14 @@ const stopStreamedVideo = (video) => {
     <button type="button" class="flex-1 classButton" v-on:click="changeCamera">
       <p>changeCamera</p>
     </button>
+  </div>
+  <div>
+    <p>Image from URL</p>
+    <input type="text" v-model="targetUrl" class="border-2">{{ targetUrl }}
+    <button type="button" class="flex-1 classButton" v-on:click="drawFromUrl">
+      <p>Draw</p>
+    </button>
+
   </div>
   <div class="invisible">
     <video id="video" autoplay playsinline="true"></video>
